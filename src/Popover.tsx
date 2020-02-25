@@ -80,6 +80,7 @@ export interface PopoverProps {
   easing?: (show: boolean) => (value: number) => number;
   useNativeDriver?: boolean;
   supportedOrientations?: Orientation[];
+  animationCompleted?: () => {}
 }
 
 export interface PopoverState extends Geometry {
@@ -125,8 +126,8 @@ export class Popover extends React.PureComponent<PopoverProps, PopoverState> {
 
   static defaultProps: Partial<PopoverProps> = {
     visible: false,
-    onClose: () => {},
-    onDismiss: () => {},
+    onClose: () => { },
+    onDismiss: () => { },
     arrowSize: { width: 16, height: 8 },
     placement: 'auto',
     duration: 300,
@@ -144,7 +145,7 @@ export class Popover extends React.PureComponent<PopoverProps, PopoverState> {
       contentSize: { width: 0, height: 0 },
       anchor: { x: 0, y: 0 },
       origin: { x: 0, y: 0 },
-      placement: props.placement  === 'auto' ? 'top' : props.placement!,
+      placement: props.placement === 'auto' ? 'top' : props.placement!,
       visible: false,
       isAwaitingShow: false,
       animation: new Animated.Value(0),
@@ -228,7 +229,7 @@ export class Popover extends React.PureComponent<PopoverProps, PopoverState> {
   }
 
   private startAnimation = (show: boolean) => {
-    const doneCallback = show ? undefined : this.onHidden;
+    const doneCallback = show ? this.animationCompleted : this.onHidden;
     Animated.timing(this.state.animation, {
       toValue: show ? 1 : 0,
       duration: this.props.duration,
@@ -236,6 +237,11 @@ export class Popover extends React.PureComponent<PopoverProps, PopoverState> {
       useNativeDriver: !!this.props.useNativeDriver,
     }).start(doneCallback);
   };
+
+  private animationCompleted = () => {
+    const { props: { animationCompleted = () => { } } } = this
+    animationCompleted()
+  }
 
   private onHidden = () => this.setState({ visible: false, isAwaitingShow: false });
 
@@ -304,13 +310,15 @@ export class Popover extends React.PureComponent<PopoverProps, PopoverState> {
         this.props.contentStyle,
         {
           transform: [
-            { translateX: animation.interpolate({
+            {
+              translateX: animation.interpolate({
                 inputRange: [0, 1],
                 outputRange: [translateOrigin.x, 0],
                 extrapolate: 'clamp',
               }),
             },
-            { translateY: animation.interpolate({
+            {
+              translateY: animation.interpolate({
                 inputRange: [0, 1],
                 outputRange: [translateOrigin.y, 0],
                 extrapolate: 'clamp',
